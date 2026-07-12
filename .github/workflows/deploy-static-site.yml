@@ -49,9 +49,16 @@ jobs:
           export AWS_REGION="$AWS_REGION"
           export AWS_DEFAULT_REGION="$AWS_REGION"
 
+          REQUEST_URL="$ACTIONS_ID_TOKEN_REQUEST_URL"
+          if [[ "$REQUEST_URL" == *"?"* ]]; then
+            REQUEST_URL="${REQUEST_URL}&audience=sts.amazonaws.com"
+          else
+            REQUEST_URL="${REQUEST_URL}?audience=sts.amazonaws.com"
+          fi
+
           curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL" > /tmp/oidc-response.json
+            "$REQUEST_URL" > /tmp/oidc-response.json
 
           cat > /tmp/extract_oidc.py <<'PY'
           import json
