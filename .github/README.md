@@ -2,8 +2,7 @@
 
 Create these GitHub repository secrets before enabling the workflow:
 
-- AWS_ACCESS_KEY_ID
-- AWS_SECRET_ACCESS_KEY
+- AWS_ROLE_TO_ASSUME
 - S3_BUCKET_NAME
 - CLOUDFRONT_DISTRIBUTION_ID (optional)
 
