@@ -1,0 +1,107 @@
+name: Deploy static site
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "false"
+  CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Validate AWS role secret
+        env:
+          AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        run: |
+          if [[ "$AWS_ROLE_TO_ASSUME" != arn:aws:iam::* ]]; then
+            echo "::error::AWS_ROLE_TO_ASSUME must be the full IAM role ARN, not the short role name. Example: arn:aws:iam::123456789012:role/deployment"
+            exit 1
+          fi
+
+      - name: Configure AWS credentials via OIDC
+        env:
+          AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          AWS_REGION: us-west-2
+        run: |
+          set -euo pipefail
+          echo "Requesting GitHub OIDC token..."
+          if [[ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" || -z "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]]; then
+            echo "::error::GitHub OIDC token request variables are missing. Ensure 'id-token: write' is enabled."
+            exit 255
+          fi
+
+          export AWS_WEB_IDENTITY_TOKEN_FILE=/tmp/aws-web-identity-token
+          export AWS_ROLE_ARN="$AWS_ROLE_TO_ASSUME"
+          export AWS_REGION="$AWS_REGION"
+          export AWS_DEFAULT_REGION="$AWS_REGION"
+
+          REQUEST_URL="$ACTIONS_ID_TOKEN_REQUEST_URL"
+          if [[ "$REQUEST_URL" == *"?"* ]]; then
+            REQUEST_URL="${REQUEST_URL}&audience=sts.amazonaws.com"
+          else
+            REQUEST_URL="${REQUEST_URL}?audience=sts.amazonaws.com"
+          fi
+
+          curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "$REQUEST_URL" > /tmp/oidc-response.json
+
+          cat > /tmp/extract_oidc.py <<'PY'
+          import json
+          import os
+          with open('/tmp/oidc-response.json') as f:
+              data = json.load(f)
+          if 'value' not in data:
+              raise SystemExit('OIDC token response did not contain a token value')
+          with open(os.environ['AWS_WEB_IDENTITY_TOKEN_FILE'], 'w') as out:
+              out.write(data['value'])
+          print('OIDC token fetched successfully')
+          PY
+          python3 /tmp/extract_oidc.py
+
+          echo "Assuming role $AWS_ROLE_ARN in $AWS_REGION"
+          aws sts assume-role-with-web-identity \
+            --role-arn "$AWS_ROLE_ARN" \
+            --role-session-name "GitHubActions-${GITHUB_RUN_ID}" \
+            --web-identity-token file://$AWS_WEB_IDENTITY_TOKEN_FILE \
+            --duration-seconds 3600 \
+            --output json > /tmp/aws-creds.json
+
+          cat > /tmp/export_creds.py <<'PY'
+          import json
+          import os
+          with open('/tmp/aws-creds.json') as f:
+              data = json.load(f)
+          creds = data['Credentials']
+          with open(os.environ['GITHUB_ENV'], 'a') as g:
+              g.write(f"AWS_ACCESS_KEY_ID={creds['AccessKeyId']}\n")
+              g.write(f"AWS_SECRET_ACCESS_KEY={creds['SecretAccessKey']}\n")
+              g.write(f"AWS_SESSION_TOKEN={creds['SessionToken']}\n")
+              g.write(f"AWS_DEFAULT_REGION={os.environ['AWS_REGION']}\n")
+          PY
+          python3 /tmp/export_creds.py
+
+      - name: Sync site to S3
+        run: |
+          aws s3 sync . s3://${{ secrets.S3_BUCKET_NAME }} --delete
+
+      - name: Invalidate CloudFront cache
+        if: ${{ env.CLOUDFRONT_DISTRIBUTION_ID != '' }}
+        continue-on-error: true
+        run: |
+          echo "Invalidating CloudFront distribution $CLOUDFRONT_DISTRIBUTION_ID"
+          aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" --paths "/*" || true
