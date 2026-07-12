@@ -47,11 +47,22 @@ jobs:
           export AWS_WEB_IDENTITY_TOKEN_FILE=/tmp/aws-web-identity-token
           export AWS_ROLE_ARN="$AWS_ROLE_TO_ASSUME"
           export AWS_REGION="$AWS_REGION"
+          export AWS_DEFAULT_REGION="$AWS_REGION"
+
           curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL" > /tmp/oidc-response.json
 
-          python3 -c "import json, os; data=json.load(open('/tmp/oidc-response.json')); assert 'value' in data; open(os.environ['AWS_WEB_IDENTITY_TOKEN_FILE'],'w').write(data['value'])"
+          python3 - <<'PY'
+import json, os
+with open('/tmp/oidc-response.json') as f:
+    data = json.load(f)
+if 'value' not in data:
+    raise SystemExit('OIDC token response did not contain a token value')
+with open(os.environ['AWS_WEB_IDENTITY_TOKEN_FILE'], 'w') as out:
+    out.write(data['value'])
+print('OIDC token fetched successfully')
+PY
 
           echo "Assuming role $AWS_ROLE_ARN in $AWS_REGION"
           aws sts assume-role-with-web-identity \
