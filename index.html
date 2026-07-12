@@ -1,43 +1,28 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="keywords" content="repair, Portland, rv, Northwest, technician, mobile, Sandy, Oregon, Parts"  />
-<meta name="description" content="Operating out of Sandy Oregon, I provide mobile RV repair to the Northwest" />
-
-
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="keywords" content="repair, Portland, rv, Northwest, technician, mobile, Sandy, Oregon, Parts">
+<meta name="description" content="Operating out of Sandy, Oregon, I provide mobile RV repair to the Northwest.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data:; style-src 'self'; script-src 'self';">
+<meta name="theme-color" content="#ffffff">
 <title>Mobile RV Repair</title>
-<link href="stylesheet.css" rel="stylesheet" type="text/css" />
+<link rel="stylesheet" href="stylesheet.css">
 
-<script type="text/javascript" src="script/jquery.js"></script>
-<script type="text/javascript" src="script/jquery.lavalamp.js"></script>
-
-<!-- Optional -->
-<script type="text/javascript" src="script/jquery.easing.1.1.js"></script>
-
-<script type="text/javascript">
-
-$(document).ready(function(){
-   
-
-});
- 
- 
-$(function() { $(".lavaLamp").lavaLamp({ fx: "backout", speed: 700 })});
-
-
-
-    
-</script>
-
+<script defer src="script/jquery.js"></script>
+<script defer src="script/jquery.lavalamp.js"></script>
+<script defer src="script/jquery.easing.1.1.js"></script>
+<script defer src="script/site.js"></script>
 </head>
 
 <body>
 <div class="container">
 
-    <div class="header"></div>
-    <div class="nav">
-        <ul class="lavaLamp" >
+    <header class="header" aria-label="Site header"></header>
+    <nav class="nav" aria-label="Primary">
+        <ul class="lavaLamp">
             <li><a href="index.html">Home </a></li>
            <!-- <li><a href="deals.html">Specials </a></li> 
             <li><a href="https://www.ntpdistribution.com/Via/index.jsp?RefAgent=R0019820" target="_blank">Parts </a></li>-->
@@ -64,17 +49,13 @@ $(function() { $(".lavaLamp").lavaLamp({ fx: "backout", speed: 700 })});
             
            
             </ul>
-    </div>
+    </nav>
 
 
 
-    <div class="statement">
-
-
-        
-
-<p>
-<img src="images/glen.jpg"/>
+    <section class="statement" aria-labelledby="about-heading">
+        <p>
+<img src="images/glen.jpg" alt="Glen Baker of River City RV Repair" loading="eager" decoding="async" />
 "We provide honest repairs, installations and inspections with personal attention to detail, at competative pricing." 
 <br><br>
 My name is Glen Baker, the owner of River City RV Repair. I began building RV's in 1984 at Beaver Coaches in Bend Oregon. Since then I have worked with many dealerships on PDIs, deliveries and repairs for all classes of RV's. Here at River City RV we focus on acheiving the ultimate goal... HAPPY CUSTOMERS! 
@@ -84,13 +65,11 @@ Not only do I offer repair services, I also offer on the spot mobile RV inspecti
 Need to accessorize your RV? I install satellite dishes, awnings or anything else you may want or need. 
 Operating out of Sandy Oregon, I provide service to the great Pacific Northwest.
 </p>
-        
-    
-    </div>
+    </section>
     
     
-    <div class="columns">
-        <h2>Services </h2> <img class="item" src="images/card.gif"/>
+    <section class="columns" aria-labelledby="services-heading">
+        <h2 id="services-heading">Services </h2> <img class="item" src="images/card.gif" alt="Service card illustration" loading="lazy" decoding="async" />
         <div class="column column1">
             <div class="columnHeader">Dealer/Factory Authorized </div>
         <ul>
@@ -136,10 +115,10 @@ Operating out of Sandy Oregon, I provide service to the great Pacific Northwest.
             <li>Paint</li>
             </ul>
         </div>
-    </div>
+    </section>
     
     
-    <div >
+    <section>
     <h2>Licenses &amp; Certificates </h2>
         <ul class="license">
             <li>Oregon LPG Company/Installation License 001234-11</li>
@@ -149,29 +128,17 @@ Operating out of Sandy Oregon, I provide service to the great Pacific Northwest.
             <li>City of Sandy Business License</li> 
             <li>Oregon State Business Registry 212260-97</li> 
         </ul>
+    </section>
     
-    </div>
-    
-
-    
-
-    
-    <div class="footer">
+    <footer class="footer">
         <p>
         <br> © 2012 River City RV Repair, L.L.C.
         <br> 503.969.8413 
         <br>rcrvRepair@hotmail.com
         <br>Insured/Liscensed# 212260-97
         </p>
-    </div>
+    </footer>
 </div>
-
-<script src="http://www.google-analytics.com/urchin.js" type="text/javascript"></script>
-<script type="text/javascript">
-<!--
-_uacct = "UA-4895000-1";
-urchinTracker();
-// --></script>
 
 </body>
 </html>
