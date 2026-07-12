@@ -37,24 +37,47 @@ jobs:
           AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           AWS_REGION: us-west-2
         run: |
-          export AWS_REGION="${AWS_REGION}"
+          set -euo pipefail
+          echo "Requesting GitHub OIDC token..."
+          if [[ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" || -z "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]]; then
+            echo "::error::GitHub OIDC token request variables are missing. Ensure 'id-token: write' is enabled."
+            exit 255
+          fi
+
           export AWS_WEB_IDENTITY_TOKEN_FILE=/tmp/aws-web-identity-token
-          echo "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" > /tmp/token.txt
-          curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" -H "Accept: application/vnd.github+json" "$ACTIONS_ID_TOKEN_REQUEST_URL" | python3 -c 'import sys, json; print(json.load(sys.stdin)["value"])' > "$AWS_WEB_IDENTITY_TOKEN_FILE"
+          curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL" > /tmp/oidc-response.json
+
+          python3 - <<'PY'
+import json, os
+with open('/tmp/oidc-response.json') as f:
+    data = json.load(f)
+if 'value' not in data:
+    raise SystemExit('OIDC token response did not contain a token value')
+with open(os.environ['AWS_WEB_IDENTITY_TOKEN_FILE'], 'w') as out:
+    out.write(data['value'])
+PY
+
+          echo "Assuming role $AWS_ROLE_TO_ASSUME in $AWS_REGION"
           aws sts assume-role-with-web-identity \
             --role-arn "$AWS_ROLE_TO_ASSUME" \
             --role-session-name "GitHubActions-${GITHUB_RUN_ID}" \
             --web-identity-token file://$AWS_WEB_IDENTITY_TOKEN_FILE \
             --duration-seconds 3600 \
-            --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
-            --output text > /tmp/aws-creds.txt
-          AWS_ACCESS_KEY_ID=$(cut -f1 /tmp/aws-creds.txt)
-          AWS_SECRET_ACCESS_KEY=$(cut -f2 /tmp/aws-creds.txt)
-          AWS_SESSION_TOKEN=$(cut -f3 /tmp/aws-creds.txt)
-          echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> "$GITHUB_ENV"
-          echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> "$GITHUB_ENV"
-          echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN" >> "$GITHUB_ENV"
-          echo "AWS_DEFAULT_REGION=$AWS_REGION" >> "$GITHUB_ENV"
+            --output json > /tmp/aws-creds.json
+
+          python3 - <<'PY'
+import json, os
+with open('/tmp/aws-creds.json') as f:
+    data = json.load(f)
+creds = data['Credentials']
+with open(os.environ['GITHUB_ENV'], 'a') as g:
+    g.write(f"AWS_ACCESS_KEY_ID={creds['AccessKeyId']}\n")
+    g.write(f"AWS_SECRET_ACCESS_KEY={creds['SecretAccessKey']}\n")
+    g.write(f"AWS_SESSION_TOKEN={creds['SessionToken']}\n")
+    g.write(f"AWS_DEFAULT_REGION={os.environ['AWS_REGION']}\n")
+PY
 
       - name: Sync site to S3
         run: |
