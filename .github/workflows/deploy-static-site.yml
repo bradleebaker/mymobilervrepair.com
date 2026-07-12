@@ -53,8 +53,9 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL" > /tmp/oidc-response.json
 
-          python3 - <<'PY'
-import json, os
+          cat > /tmp/extract_oidc.py <<'PY'
+import json
+import os
 with open('/tmp/oidc-response.json') as f:
     data = json.load(f)
 if 'value' not in data:
@@ -63,6 +64,7 @@ with open(os.environ['AWS_WEB_IDENTITY_TOKEN_FILE'], 'w') as out:
     out.write(data['value'])
 print('OIDC token fetched successfully')
 PY
+          python3 /tmp/extract_oidc.py
 
           echo "Assuming role $AWS_ROLE_ARN in $AWS_REGION"
           aws sts assume-role-with-web-identity \
@@ -72,7 +74,19 @@ PY
             --duration-seconds 3600 \
             --output json > /tmp/aws-creds.json
 
-          python3 -c "import json, os; data=json.load(open('/tmp/aws-creds.json')); creds=data['Credentials']; g=open(os.environ['GITHUB_ENV'],'a'); g.write(f'AWS_ACCESS_KEY_ID={creds['AccessKeyId']}\n'); g.write(f'AWS_SECRET_ACCESS_KEY={creds['SecretAccessKey']}\n'); g.write(f'AWS_SESSION_TOKEN={creds['SessionToken']}\n'); g.write(f'AWS_DEFAULT_REGION={os.environ['AWS_REGION']}\n'); g.close()"
+          cat > /tmp/export_creds.py <<'PY'
+import json
+import os
+with open('/tmp/aws-creds.json') as f:
+    data = json.load(f)
+creds = data['Credentials']
+with open(os.environ['GITHUB_ENV'], 'a') as g:
+    g.write(f"AWS_ACCESS_KEY_ID={creds['AccessKeyId']}\n")
+    g.write(f"AWS_SECRET_ACCESS_KEY={creds['SecretAccessKey']}\n")
+    g.write(f"AWS_SESSION_TOKEN={creds['SessionToken']}\n")
+    g.write(f"AWS_DEFAULT_REGION={os.environ['AWS_REGION']}\n")
+PY
+          python3 /tmp/export_creds.py
 
       - name: Sync site to S3
         run: |
