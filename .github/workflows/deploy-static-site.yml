@@ -11,7 +11,7 @@ permissions:
   id-token: write
 
 env:
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
 
 jobs:
@@ -32,7 +32,7 @@ jobs:
           fi
 
       - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v5
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: us-west-2
