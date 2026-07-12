@@ -10,12 +10,14 @@ permissions:
   contents: read
   id-token: write
 
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
+  CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
-    env:
-      CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
