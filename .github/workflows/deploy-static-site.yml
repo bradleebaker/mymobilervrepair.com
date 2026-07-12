@@ -45,15 +45,17 @@ jobs:
           fi
 
           export AWS_WEB_IDENTITY_TOKEN_FILE=/tmp/aws-web-identity-token
+          export AWS_ROLE_ARN="$AWS_ROLE_TO_ASSUME"
+          export AWS_REGION="$AWS_REGION"
           curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL" > /tmp/oidc-response.json
 
           python3 -c "import json, os; data=json.load(open('/tmp/oidc-response.json')); assert 'value' in data; open(os.environ['AWS_WEB_IDENTITY_TOKEN_FILE'],'w').write(data['value'])"
 
-          echo "Assuming role $AWS_ROLE_TO_ASSUME in $AWS_REGION"
+          echo "Assuming role $AWS_ROLE_ARN in $AWS_REGION"
           aws sts assume-role-with-web-identity \
-            --role-arn "$AWS_ROLE_TO_ASSUME" \
+            --role-arn "$AWS_ROLE_ARN" \
             --role-session-name "GitHubActions-${GITHUB_RUN_ID}" \
             --web-identity-token file://$AWS_WEB_IDENTITY_TOKEN_FILE \
             --duration-seconds 3600 \
